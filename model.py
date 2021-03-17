@@ -126,7 +126,7 @@ class WaveEncoder(nn.Module):
         skips = {}
         for level in [1, 2, 3, 4]:
             x = self.encode(x, skips, level)
-        return x
+        return x, skips
 
     def encode(self, x, skips, level):
         assert level in {1, 2, 3, 4}
