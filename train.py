@@ -32,6 +32,7 @@ def train(config):
         lr=config.lr,
         betas=(config.beta1, config.beta2)
     )
+    MSE_loss = nn.MSELoss()
 
     data_loader = DataLoader(dataset=TrainDataset(config.train_data), batch_size=config.batch_size, shuffle=True,
                              num_workers=config.num_workers, drop_last=True)
@@ -43,9 +44,9 @@ def train(config):
             feature, skips = encoder(real_image)
             recon_image = decoder(feature, skips)
             feature_recon, _ = encoder(recon_image)
-            recon_loss = nn.MSELoss(recon_image, real_image)
+            recon_loss = MSE_loss(recon_image, real_image)
             feature_loss = torch.zeros(1).to(device)
-            feature_loss += nn.MSELoss(feature_recon, feature.detach())
+            feature_loss += MSE_loss(feature_recon, feature.detach())
             loss = recon_loss * config.recon_weight + feature_loss * config.feature_weight
             if i % 100 == 0:
                 print('%s epoch: %d | batch: %d | loss: %.4f' % (datetime.datetime.now(), epoch, i, loss.cpu().data.item()))
