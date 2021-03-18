@@ -59,10 +59,13 @@ def train(config):
         torch.save(state_dict,
                    '{:s}/wave_decoder_{:s}_l4_epoch_{:d}.pth'.format(config.save_dir, config.option_unpool, epoch))
 
+        for param_group in dec_optim.param_groups:
+            param_group['lr'] = param_group['lr'] * (0.95 ** epoch)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--epoches', type=int, default=3)
+    parser.add_argument('--epoches', type=int, default=5)
     parser.add_argument('--batch_size', type=int, default=8)
     parser.add_argument('--num_workers', type=int, default=8)
     parser.add_argument('--lr', type=float, default=1e-3)
