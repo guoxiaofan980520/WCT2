@@ -44,7 +44,9 @@ def is_image_file(filename):
 
 
 class WCT2:
-    def __init__(self, model_path='./model_checkpoints', transfer_at=['encoder', 'skip', 'decoder'], option_unpool='cat5', device='cuda:0', verbose=False):
+    def __init__(self, model_path='./model_checkpoints', encoder_name='wave_encoder_cat5_l4.pth',
+                 decoder_name='wave_decoder_cat5_l4.pth', transfer_at=['encoder', 'skip', 'decoder'],
+                 option_unpool='cat5', device='cuda:0', verbose=False):
 
         self.transfer_at = set(transfer_at)
         assert not(self.transfer_at - set(['encoder', 'decoder', 'skip'])), 'invalid transfer_at: {}'.format(transfer_at)
@@ -54,8 +56,8 @@ class WCT2:
         self.verbose = verbose
         self.encoder = WaveEncoder(option_unpool).to(self.device)
         self.decoder = WaveDecoder(option_unpool).to(self.device)
-        self.encoder.load_state_dict(torch.load(os.path.join(model_path, 'wave_encoder_{}_l4.pth'.format(option_unpool)), map_location=lambda storage, loc: storage))
-        self.decoder.load_state_dict(torch.load(os.path.join(model_path, 'wave_decoder_{}_l4.pth'.format(option_unpool)), map_location=lambda storage, loc: storage))
+        self.encoder.load_state_dict(torch.load(os.path.join(model_path, encoder_name), map_location=lambda storage, loc: storage))
+        self.decoder.load_state_dict(torch.load(os.path.join(model_path, decoder_name), map_location=lambda storage, loc: storage))
 
     def print_(self, msg):
         if self.verbose:
@@ -171,7 +173,9 @@ def run_bulk(config):
                 postfix = '_'.join(sorted(list(transfer_at)))
                 fname_output = _output.replace(ext, '_{}_{}.{}'.format(config.option_unpool, postfix, ext))
                 print('------ transfer:', _output)
-                wct2 = WCT2(transfer_at=transfer_at, option_unpool=config.option_unpool, device=device, verbose=config.verbose)
+                wct2 = WCT2(model_path=config.model_path, encoder_name=config.encoder_name,
+                            decoder_name=config.decoder_name, transfer_at=transfer_at,
+                            option_unpool=config.option_unpool, device=device, verbose=config.verbose)
                 with torch.no_grad():
                     img = wct2.transfer(content, style, content_segment, style_segment, alpha=config.alpha)
                 save_image(img.clamp_(0, 1), fname_output, padding=0)
@@ -181,7 +185,9 @@ def run_bulk(config):
                     postfix = '_'.join(sorted(list(_transfer_at)))
                     fname_output = _output.replace(ext, '_{}_{}.{}'.format(config.option_unpool, postfix, ext))
                     print('------ transfer:', fname)
-                    wct2 = WCT2(transfer_at=_transfer_at, option_unpool=config.option_unpool, device=device, verbose=config.verbose)
+                    wct2 = WCT2(model_path=config.model_path, encoder_name=config.encoder_name,
+                            decoder_name=config.decoder_name, transfer_at=_transfer_at,
+                                option_unpool=config.option_unpool, device=device, verbose=config.verbose)
                     with torch.no_grad():
                         img = wct2.transfer(content, style, content_segment, style_segment, alpha=config.alpha)
                     save_image(img.clamp_(0, 1), fname_output, padding=0)
@@ -194,6 +200,9 @@ if __name__ == '__main__':
     parser.add_argument('--style', type=str, default='./examples/style')
     parser.add_argument('--style_segment', type=str, default=None)
     parser.add_argument('--output', type=str, default='./outputs')
+    parser.add_argument('--model_path', type=str, required=True)
+    parser.add_argument('--encoder_name', type=str, required=True)
+    parser.add_argument('--decoder_name', type=str, required=True)
     parser.add_argument('--image_size', type=int, default=512)
     parser.add_argument('--alpha', type=float, default=1)
     parser.add_argument('--option_unpool', type=str, default='cat5', choices=['sum', 'cat5'])
@@ -210,7 +219,4 @@ if __name__ == '__main__':
     if not os.path.exists(os.path.join(config.output)):
         os.makedirs(os.path.join(config.output))
 
-    '''
-    CUDA_VISIBLE_DEVICES=6 python transfer.py --content ./examples/content --style ./examples/style --content_segment ./examples/content_segment --style_segment ./examples/style_segment/ --output ./outputs/ --verbose --image_size 512 -a
-    '''
     run_bulk(config)
